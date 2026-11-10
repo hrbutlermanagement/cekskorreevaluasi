@@ -1,0 +1,843 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Butler Management - Housekeeping Re-evaluation Portal</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts & FontAwesome -->
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/js/all.min.js"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Plus Jakarta Sans', 'sans-serif'],
+                    },
+                    colors: {
+                        airbnb: {
+                            primary: '#FF385C',
+                            dark: '#E00B41',
+                            hover: '#DD1E4B',
+                            light: '#FFF0F3',
+                            gray: '#222222',
+                            lightGray: '#717171',
+                            border: '#DDDDDD',
+                            bg: '#F7F7F7'
+                        }
+                    },
+                    boxShadow: {
+                        airbnb: '0 6px 16px rgba(0,0,0,0.12)',
+                        'airbnb-hover': '0 6px 20px rgba(0,0,0,0.18)',
+                        card: '0 2px 8px rgba(0,0,0,0.08)'
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            background-color: #FAFAFA;
+            color: #222222;
+        }
+        .fade-in {
+            animation: fadeIn 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(8px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #d1d1d1;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #b1b1b1;
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col justify-between bg-gray-50 text-airbnb-gray">
+
+    <!-- Top Navigation Header -->
+    <header class="bg-white border-b border-gray-200 sticky top-0 z-40 px-4 lg:px-12 py-3.5 shadow-sm">
+        <div class="max-w-7xl mx-auto flex items-center justify-between">
+            <!-- Brand & Logo -->
+            <div class="flex items-center space-x-3 cursor-pointer" onclick="resetToHome()">
+                <div class="relative h-11 w-auto flex items-center">
+                    <img src="logo.png" alt="Company Logo" class="h-10 w-auto object-contain" onerror="this.onerror=null; this.parentElement.innerHTML='<div class=\'bg-airbnb-primary text-white rounded-xl font-black px-3.5 py-2 text-sm flex items-center shadow-sm\'><i class=\'fa-solid font-bold fa-building-user mr-2\'></i>BUTLER MGMT</div>';">
+                </div>
+                <div class="hidden sm:block border-l border-gray-300 h-6 mx-1"></div>
+                <div class="hidden sm:block">
+                    <span class="block text-xs uppercase tracking-wider text-airbnb-lightGray font-semibold">Housekeeping Dept</span>
+                    <span class="block text-sm font-bold text-airbnb-gray leading-tight">Re-evaluation 2026</span>
+                </div>
+            </div>
+
+            <!-- Header Quick Actions -->
+            <div class="flex items-center space-x-3">
+                <button id="viewToggleBtn" onclick="openManagerAuthModal()" class="px-4 py-2 border border-gray-300 hover:border-black text-sm font-semibold rounded-full transition flex items-center gap-2 bg-white text-airbnb-gray">
+                    <i id="managerLockIcon" class="fa-solid fa-lock text-airbnb-primary"></i>
+                    <span id="viewToggleText">Manager Overview</span>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Container -->
+    <main class="max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-8 flex-grow">
+
+        <!-- MANAGER AUTHENTICATION MODAL -->
+        <div id="managerAuthModal" class="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden fade-in">
+            <div class="bg-white rounded-3xl border border-gray-200 shadow-2xl max-w-sm w-full p-6 sm:p-8 relative">
+                <button onclick="closeManagerAuthModal()" class="absolute top-5 right-5 text-gray-400 hover:text-gray-600 transition">
+                    <i class="fa-solid fa-xmark text-lg"></i>
+                </button>
+
+                <div class="w-12 h-12 rounded-2xl bg-airbnb-light text-airbnb-primary flex items-center justify-center mb-4 text-xl">
+                    <i class="fa-solid fa-user-shield"></i>
+                </div>
+
+                <h3 class="text-xl font-extrabold text-airbnb-gray">Manager Authentication</h3>
+                <p class="text-xs text-airbnb-lightGray mt-1 mb-5">Please enter the management password to access the full staff re-evaluation report.</p>
+
+                <!-- Password Error Alert -->
+                <div id="managerAuthError" class="hidden mb-4 p-3 rounded-2xl bg-red-50 border border-red-200 text-red-600 text-xs font-medium flex items-center gap-2">
+                    <i class="fa-solid fa-circle-exclamation text-sm flex-shrink-0"></i>
+                    <span>Incorrect manager password. Try again.</span>
+                </div>
+
+                <form onsubmit="verifyManagerPassword(event)" class="space-y-4">
+                    <div>
+                        <label for="managerPassInput" class="block text-xs font-bold uppercase tracking-wider text-airbnb-gray mb-1.5">Manager Password</label>
+                        <div class="relative">
+                            <input type="password" id="managerPassInput" placeholder="Enter password..." required class="w-full px-4 py-3 bg-gray-50 border border-gray-300 rounded-2xl text-sm text-airbnb-gray focus:ring-2 focus:ring-airbnb-primary focus:border-transparent outline-none transition font-medium">
+                            <button type="button" onclick="toggleManagerPassVisibility()" class="absolute inset-y-0 right-0 pr-4 flex items-center text-gray-400 hover:text-gray-600">
+                                <i id="managerEyeIcon" class="fa-solid fa-eye text-xs"></i>
+                            </button>
+                        </div>
+                        <span class="text-[11px] text-airbnb-lightGray mt-1 block">Default password: <code class="bg-gray-100 px-1 py-0.5 rounded text-airbnb-gray font-mono">mautauaja</code></span>
+                    </div>
+
+                    <button type="submit" class="w-full py-3.5 px-6 rounded-2xl bg-airbnb-primary hover:bg-airbnb-hover text-white font-bold text-sm shadow-md hover:shadow-lg transition duration-200 flex items-center justify-center gap-2">
+                        <i class="fa-solid fa-key text-xs"></i>
+                        <span>Unlock Overview</span>
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        <!-- 1. LOGIN / PORTAL CARD VIEW -->
+        <section id="loginSection" class="max-w-md mx-auto fade-in my-4">
+            <div class="bg-white rounded-3xl border border-gray-200 shadow-airbnb p-6 sm:p-8">
+                
+                <!-- Event Header Badge -->
+                <div class="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-airbnb-light text-airbnb-primary mb-4">
+                    <i class="fa-regular fa-calendar-check mr-1.5"></i> Evaluation Date: Nov 9, 2026
+                </div>
+
+                <h1 class="text-2xl font-extrabold tracking-tight text-airbnb-gray mb-1">Check Evaluation Score</h1>
+                <p class="text-sm text-airbnb-lightGray mb-6">Select your name and enter your Date of Birth as your security password.</p>
+
+                <!-- Error Alert Box -->
+                <div id="loginError" class="hidden mb-5 p-3.5 rounded-2xl bg-red-50 border border-red-200 text-red-600 text-xs font-medium flex items-center gap-2.5">
+                    <i class="fa-solid fa-circle-exclamation text-base flex-shrink-0"></i>
+                    <span id="errorMessage">Invalid Date of Birth format or password. Please try again.</span>
+                </div>
+
+                <form id="loginForm" onsubmit="handleLogin(event)" class="space-y-4">
+                    <!-- Staff Name Selection -->
+                    <div>
+                        <label for="staffSelect" class="block text-xs font-bold uppercase tracking-wider text-airbnb-gray mb-1.5">Staff Member Name</label>
+                        <div class="relative">
+                            <select id="staffSelect" required class="w-full px-4 py-3.5 bg-gray-50 border border-gray-300 rounded-2xl text-sm text-airbnb-gray focus:ring-2 focus:ring-airbnb-primary focus:border-transparent outline-none appearance-none transition pr-10 font-medium">
+                                <option value="" disabled selected>Loading staff roster...</option>
+                            </select>
+                            <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4 text-gray-500">
+                                <i class="fa-solid fa-chevron-down text-xs"></i>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Password / DOB Field -->
+                    <div>
+                        <div class="flex justify-between items-center mb-1.5">
+                            <label for="dobInput" class="block text-xs font-bold uppercase tracking-wider text-airbnb-gray">Password (Date of Birth)</label>
+                            <span class="text-[11px] text-airbnb-lightGray">e.g. 24 Jan 2007</span>
+                        </div>
+                        <div class="relative">
+                            <input type="password" id="dobInput" placeholder="e.g. 24 Jan 2007" required class="w-full px-4 py-3.5 bg-gray-50 border border-gray-300 rounded-2xl text-sm text-airbnb-gray focus:ring-2 focus:ring-airbnb-primary focus:border-transparent outline-none transition font-medium">
+                            <button type="button" onclick="togglePasswordVisibility()" class="absolute inset-y-0 right-0 pr-4 flex items-center text-gray-400 hover:text-gray-600">
+                                <i id="eyeIcon" class="fa-solid fa-eye text-xs"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Submit Button -->
+                    <button type="submit" class="w-full py-3.5 px-6 rounded-2xl bg-airbnb-primary hover:bg-airbnb-hover text-white font-bold text-sm shadow-md hover:shadow-lg transition duration-200 flex items-center justify-center gap-2 mt-2">
+                        <span>Access Evaluation Result</span>
+                        <i class="fa-solid fa-arrow-right text-xs"></i>
+                    </button>
+                </form>
+
+                <!-- Quick Test Selector -->
+                <div class="mt-4 pt-3 border-t border-gray-100 text-center">
+                    <span class="text-[11px] text-airbnb-lightGray font-medium">Cek Skormu di sini: </span>
+                    <button type="button" onclick="quickFillDemo()" class="text-[11px] font-bold text-airbnb-primary hover:underline">pilih data diri input tanggal lahir</button>
+                </div>
+
+                <!-- Scoring Criteria Info Footer -->
+                <div class="mt-8 pt-6 border-t border-gray-100">
+                    <div class="text-xs font-semibold text-airbnb-gray mb-2">Evaluation Weight Distribution:</div>
+                    <div class="grid grid-cols-2 gap-2 text-xs">
+                        <div class="p-2.5 rounded-xl bg-gray-50 border border-gray-100">
+                            <span class="block font-bold text-airbnb-gray">25% Weight</span>
+                            <span class="text-airbnb-lightGray">Attention to Detail</span>
+                        </div>
+                        <div class="p-2.5 rounded-xl bg-gray-50 border border-gray-100">
+                            <span class="block font-bold text-airbnb-gray">75% Weight</span>
+                            <span class="text-airbnb-lightGray">Cleaning Re-eval Test</span>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </section>
+
+        <!-- 2. STAFF RESULT DASHBOARD VIEW -->
+        <section id="resultSection" class="hidden max-w-3xl mx-auto fade-in">
+            <!-- Back Action Header -->
+            <div class="flex items-center justify-between mb-6">
+                <button onclick="logout()" class="text-xs font-bold text-airbnb-lightGray hover:text-airbnb-gray inline-flex items-center gap-2 px-3 py-2 rounded-xl hover:bg-gray-100 transition">
+                    <i class="fa-solid fa-chevron-left text-xs"></i>
+                    <span>Log Out & Return</span>
+                </button>
+                <span class="text-xs text-airbnb-lightGray font-medium">Re-evaluation Date: Nov 9, 2026</span>
+            </div>
+
+            <!-- Profile Overview Card -->
+            <div class="bg-white rounded-3xl border border-gray-200 shadow-airbnb p-6 sm:p-8 mb-6">
+                <div class="flex flex-col md:flex-row md:items-center justify-between gap-6 pb-6 border-b border-gray-100">
+                    <div class="flex items-center gap-4">
+                        <div id="avatarBadge" class="w-16 h-16 rounded-2xl bg-gradient-to-tr from-airbnb-primary to-rose-400 text-white font-bold text-2xl flex items-center justify-center shadow-md">
+                            --
+                        </div>
+                        <div>
+                            <span class="text-xs font-bold uppercase tracking-wider text-airbnb-primary">Staff Evaluation Profile</span>
+                            <h2 id="resultName" class="text-2xl font-extrabold text-airbnb-gray leading-tight">--</h2>
+                            <p class="text-xs text-airbnb-lightGray mt-0.5">Date of Birth: <span id="resultDob" class="font-medium text-airbnb-gray">--</span></p>
+                        </div>
+                    </div>
+
+                    <!-- Grade Badge -->
+                    <div class="flex items-center gap-3 bg-gray-50 px-5 py-3.5 rounded-2xl border border-gray-200 self-start md:self-auto">
+                        <div class="text-right">
+                            <span class="block text-[10px] font-bold uppercase tracking-wider text-airbnb-lightGray">Grade Index</span>
+                            <span id="resultGradeText" class="text-xs font-bold text-gray-600">--</span>
+                        </div>
+                        <div id="gradeBadge" class="w-12 h-12 rounded-xl bg-emerald-500 text-white font-black text-2xl flex items-center justify-center shadow-sm">
+                            -
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Final Score Highlight Banner -->
+                <div class="mt-6 grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div class="md:col-span-1 p-5 rounded-2xl bg-airbnb-light border border-rose-100 flex flex-col justify-between">
+                        <div>
+                            <span class="text-xs font-bold uppercase tracking-wider text-airbnb-primary">Final Weighted Score</span>
+                            <div class="flex items-baseline gap-1 mt-2">
+                                <span id="resultFinalScore" class="text-4xl font-extrabold text-airbnb-gray">0.0</span>
+                                <span class="text-sm font-semibold text-airbnb-lightGray">/ 10</span>
+                            </div>
+                        </div>
+                        <div id="scorePercentage" class="text-xs font-bold text-airbnb-primary mt-2">
+                            -- % overall performance
+                        </div>
+                    </div>
+
+                    <div class="md:col-span-2 p-5 rounded-2xl bg-gray-50 border border-gray-200 flex flex-col justify-between">
+                        <div>
+                            <span class="text-xs font-bold uppercase tracking-wider text-airbnb-lightGray">Assigned Official Placement</span>
+                            <div class="flex items-center gap-2 mt-2">
+                                <i class="fa-solid fa-location-dot text-airbnb-primary text-lg"></i>
+                                <span id="resultPlacement" class="text-lg font-bold text-airbnb-gray">--</span>
+                            </div>
+                        </div>
+                        <p class="text-xs text-airbnb-lightGray mt-3">Verified by Operations Team (Kusuma x Ms. Udesh)</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Detailed Score Breakdown -->
+            <div class="bg-white rounded-3xl border border-gray-200 shadow-airbnb p-6 sm:p-8">
+                <h3 class="text-lg font-bold text-airbnb-gray mb-4 flex items-center gap-2">
+                    <i class="fa-solid fa-chart-pie text-airbnb-primary"></i>
+                    <span>Detailed Evaluation Breakdown</span>
+                </h3>
+
+                <div class="space-y-4">
+                    <!-- Breakdown 1: Attention to Detail -->
+                    <div class="p-4 rounded-2xl bg-gray-50 border border-gray-100">
+                        <div class="flex justify-between items-start mb-2">
+                            <div>
+                                <h4 class="text-sm font-bold text-airbnb-gray">Personality & Attention to Detail</h4>
+                                <span class="text-xs text-airbnb-lightGray">Weighted Contribution: 25%</span>
+                            </div>
+                            <div class="text-right">
+                                <span id="detailRawScore" class="text-base font-extrabold text-airbnb-gray">0.0</span>
+                                <span class="text-xs text-airbnb-lightGray">/10</span>
+                            </div>
+                        </div>
+                        <!-- Progress Bar -->
+                        <div class="w-full bg-gray-200 h-2.5 rounded-full overflow-hidden">
+                            <div id="detailProgressBar" class="bg-amber-500 h-2.5 rounded-full transition-all duration-500" style="width: 0%"></div>
+                        </div>
+                        <div class="flex justify-between items-center text-[11px] text-airbnb-lightGray mt-1.5 font-medium">
+                            <span>Contribution Score: <strong id="detailWeightedVal" class="text-airbnb-gray">0.0</strong> / 2.5 pts</span>
+                            <span id="detailPctVal">0%</span>
+                        </div>
+                    </div>
+
+                    <!-- Breakdown 2: Operational Cleaning Re-evaluation -->
+                    <div class="p-4 rounded-2xl bg-gray-50 border border-gray-100">
+                        <div class="flex justify-between items-start mb-2">
+                            <div>
+                                <h4 class="text-sm font-bold text-airbnb-gray">Operational User Re-evaluation Score</h4>
+                                <span class="text-xs text-airbnb-lightGray">Cleaning Test (Kusuma x Ms. Udesh) - Weighted: 75%</span>
+                            </div>
+                            <div class="text-right">
+                                <span id="opRawScore" class="text-base font-extrabold text-airbnb-gray">0.0</span>
+                                <span class="text-xs text-airbnb-lightGray">/10</span>
+                            </div>
+                        </div>
+                        <!-- Progress Bar -->
+                        <div class="w-full bg-gray-200 h-2.5 rounded-full overflow-hidden">
+                            <div id="opProgressBar" class="bg-blue-600 h-2.5 rounded-full transition-all duration-500" style="width: 0%"></div>
+                        </div>
+                        <div class="flex justify-between items-center text-[11px] text-airbnb-lightGray mt-1.5 font-medium">
+                            <span>Contribution Score: <strong id="opWeightedVal" class="text-airbnb-gray">0.0</strong> / 7.5 pts</span>
+                            <span id="opPctVal">0%</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Index Reference Table Info -->
+                <div class="mt-6 pt-5 border-t border-gray-100">
+                    <h5 class="text-xs font-bold uppercase tracking-wider text-airbnb-lightGray mb-3">Grade Index Scale</h5>
+                    <div class="grid grid-cols-2 sm:grid-cols-6 gap-2 text-center text-xs">
+                        <div class="p-2 rounded-xl bg-emerald-50 border border-emerald-100">
+                            <span class="font-extrabold text-emerald-700 block text-sm">Grade A</span>
+                            <span class="text-[10px] text-emerald-600">≥ 8.5</span>
+                        </div>
+                        <div class="p-2 rounded-xl bg-teal-50 border border-teal-100">
+                            <span class="font-extrabold text-teal-700 block text-sm">Grade B+</span>
+                            <span class="text-[10px] text-teal-600">8.0 - 8.4</span>
+                        </div>
+                        <div class="p-2 rounded-xl bg-blue-50 border border-blue-100">
+                            <span class="font-extrabold text-blue-700 block text-sm">Grade B</span>
+                            <span class="text-[10px] text-blue-600">7.5 - 7.9</span>
+                        </div>
+                        <div class="p-2 rounded-xl bg-amber-50 border border-amber-100">
+                            <span class="font-extrabold text-amber-700 block text-sm">Grade C+</span>
+                            <span class="text-[10px] text-amber-600">7.0 - 7.4 / Grand</span>
+                        </div>
+                        <div class="p-2 rounded-xl bg-orange-50 border border-orange-100">
+                            <span class="font-extrabold text-orange-700 block text-sm">Grade C</span>
+                            <span class="text-[10px] text-orange-600">6.0 - 6.9</span>
+                        </div>
+                        <div class="p-2 rounded-xl bg-rose-50 border border-rose-100">
+                            <span class="font-extrabold text-rose-700 block text-sm">Grade D</span>
+                            <span class="text-[10px] text-rose-600">&lt; 6.0</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 3. MANAGER / OVERVIEW DATA TABLE VIEW -->
+        <section id="overviewSection" class="hidden fade-in space-y-6">
+            <!-- Header Summary Row -->
+            <div class="bg-white rounded-3xl border border-gray-200 shadow-airbnb p-6 sm:p-8">
+                <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
+                    <div>
+                        <div class="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-airbnb-light text-airbnb-primary mb-2">
+                            <i class="fa-solid fa-shield-halved mr-1.5"></i> Management Access Mode (Authenticated)
+                        </div>
+                        <h2 class="text-2xl font-extrabold text-airbnb-gray">Housekeeping Re-evaluation Roster</h2>
+                        <p class="text-sm text-airbnb-lightGray">Complete assessment results, score calculations, and placement assignments.</p>
+                    </div>
+
+                    <!-- Lock / Exit Action & Search -->
+                    <div class="flex flex-wrap items-center gap-3">
+                        <button onclick="lockManagerOverview()" class="px-3.5 py-2 rounded-2xl border border-red-200 text-red-600 hover:bg-red-50 text-xs font-bold transition flex items-center gap-1.5">
+                            <i class="fa-solid fa-lock"></i>
+                            <span>Lock Session</span>
+                        </button>
+                        <div class="relative w-full sm:w-64">
+                            <i class="fa-solid fa-magnifying-glass absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 text-xs"></i>
+                            <input type="text" id="searchInput" oninput="renderTable()" placeholder="Search staff or placement..." class="w-full pl-9 pr-4 py-2.5 bg-gray-50 border border-gray-300 rounded-2xl text-xs text-airbnb-gray focus:ring-2 focus:ring-airbnb-primary focus:border-transparent outline-none">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Key Metrics Summary Cards -->
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
+                    <div class="bg-gray-50 p-4 rounded-2xl border border-gray-200">
+                        <span class="text-[11px] font-bold text-airbnb-lightGray uppercase tracking-wider">Total Evaluated</span>
+                        <div id="statTotal" class="text-2xl font-extrabold text-airbnb-gray mt-1">15</div>
+                    </div>
+                    <div class="bg-emerald-50 p-4 rounded-2xl border border-emerald-100">
+                        <span class="text-[11px] font-bold text-emerald-800 uppercase tracking-wider">Grade A Performers</span>
+                        <div id="statGradeA" class="text-2xl font-extrabold text-emerald-700 mt-1">0</div>
+                    </div>
+                    <div class="bg-blue-50 p-4 rounded-2xl border border-blue-100">
+                        <span class="text-[11px] font-bold text-blue-800 uppercase tracking-wider">Grade B Performers</span>
+                        <div id="statGradeB" class="text-2xl font-extrabold text-blue-700 mt-1">0</div>
+                    </div>
+                    <div class="bg-rose-50 p-4 rounded-2xl border border-rose-100">
+                        <span class="text-[11px] font-bold text-rose-800 uppercase tracking-wider">Avg Final Score</span>
+                        <div id="statAvgScore" class="text-2xl font-extrabold text-rose-700 mt-1">0.0</div>
+                    </div>
+                </div>
+
+                <!-- Table Container -->
+                <div class="overflow-x-auto rounded-2xl border border-gray-200">
+                    <table class="w-full text-left border-collapse">
+                        <thead>
+                            <tr class="bg-gray-100 text-airbnb-gray text-xs uppercase tracking-wider font-bold border-b border-gray-200">
+                                <th class="py-3.5 px-4">#</th>
+                                <th class="py-3.5 px-4">Staff Name</th>
+                                <th class="py-3.5 px-4">DOB</th>
+                                <th class="py-3.5 px-4 text-center">Attention to Detail (25%)</th>
+                                <th class="py-3.5 px-4 text-center">Re-eval Score (75%)</th>
+                                <th class="py-3.5 px-4 text-center">Final Score</th>
+                                <th class="py-3.5 px-4 text-center">Index</th>
+                                <th class="py-3.5 px-4">Assigned Placement</th>
+                            </tr>
+                        </thead>
+                        <tbody id="overviewTableBody" class="divide-y divide-gray-200 text-xs text-airbnb-gray font-medium">
+                            <!-- Rows injected via JavaScript -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-white border-t border-gray-200 py-6 mt-12 text-center text-xs text-airbnb-lightGray">
+        <div class="max-w-7xl mx-auto px-4 flex flex-col sm:flex-row justify-between items-center gap-3">
+            <div>
+                © November 2026 <strong>tukang koding: ninopaulus</strong>. All Rights Reserved.
+            </div>
+            <div class="flex items-center space-x-4">
+                <span>Re-evaluation Date: Nov 9, 2026</span>
+                <span>•</span>
+                <span class="text-airbnb-primary font-semibold">Housekeeping Division</span>
+            </div>
+        </div>
+    </footer>
+
+    <!-- JavaScript Application Logic -->
+    <script>
+        // Complete 15 Staff Re-evaluation Dataset
+        const staffData = [
+            { id: 1, name: "Wisnu Gunawan", dob: "24 Jan 2007", detailScore: 7, opScore: 8, placement: "Horizon Cemagi Apartments" },
+            { id: 2, name: "Ni Made Liana Trisnadewi", dob: "06 Jun 2006", detailScore: 6, opScore: 9, placement: "Horizon Cemagi Apartments" },
+            { id: 3, name: "Ni Komang Rike Handrayani", dob: "18 Nov 1988", detailScore: 6, opScore: 9, placement: "Horizon Cemagi Apartments" },
+            { id: 4, name: "Naia Novia Ramadhanie", dob: "02 Okt 2006", detailScore: 4.3, opScore: 9, placement: "Horizon Cemagi Apartments" },
+            { id: 5, name: "I Made Wahyu Budi Setiawan", dob: "01 Jun 2007", detailScore: 4, opScore: 9, placement: "Horizon Cemagi Apartments" },
+            { id: 6, name: "Ni Kadek Ayu Suasti", dob: "08 Sep 2005", detailScore: 4.5, opScore: 9, placement: "Horizon Cemagi Apartments" },
+            { id: 7, name: "I Dewa Made Artha Putra", dob: "09 Feb 1992", detailScore: 4, opScore: 9, placement: "Premier, Deluxe, Seis" },
+            { id: 8, name: "Ni Luh Putu Eka Mulyani", dob: "27 Jan 2004", detailScore: 6, opScore: 8, placement: "Premier, Deluxe, Seis" },
+            { id: 9, name: "I Kadek Dwi Pramana", dob: "02 Mar 2007", detailScore: 4.5, opScore: 8.5, placement: "Premier, Deluxe, Seis" },
+            { id: 10, name: "Ni Kadek Wiska Dwi Lusmini", dob: "20 Feb 2003", detailScore: 6, opScore: 8, placement: "Premier, Deluxe, Seis" },
+            { id: 11, name: "Chikita Ayu Tri Maulydia Rezeki", dob: "30 Mar 2007", detailScore: 6, opScore: 8, placement: "Premier, Deluxe, Seis" },
+            { id: 12, name: "I Komang Tessa Triana", dob: "12 Sep 2001", detailScore: 4, opScore: 9, placement: "Premier, Deluxe, Seis" },
+            { id: 13, name: "Iman Hakim", dob: "17 Jul 2004", detailScore: 3.7, opScore: 7, placement: "Grand Apartments" },
+            { id: 14, name: "I Putu Rica Widi Saputra", dob: "06 Jan 2002", detailScore: 4.5, opScore: 8.5, placement: "Grand Apartments" },
+            { id: 15, name: "I Putu Agus Yudi Adnyana", dob: "10 Jun 1996", detailScore: 1.3, opScore: 9, placement: "Grand Apartments" }
+        ];
+
+        // Month Mapping for flexible date normalization
+        const monthMap = {
+            'jan': '01', 'january': '01', 'januari': '01',
+            'feb': '02', 'february': '02', 'februari': '02',
+            'mar': '03', 'march': '03', 'maret': '03',
+            'apr': '04', 'april': '04',
+            'may': '05', 'mei': '05',
+            'jun': '06', 'june': '06', 'juni': '06',
+            'jul': '07', 'july': '07', 'juli': '07',
+            'aug': '08', 'august': '08', 'agustus': '08', 'agt': '08',
+            'sep': '09', 'september': '09',
+            'oct': '10', 'october': '10', 'okt': '10', 'oktober': '10',
+            'nov': '11', 'november': '11',
+            'dec': '12', 'december': '12', 'des': '12', 'desember': '12'
+        };
+
+        // Normalize DOB strings into digits only (DDMMYYYY) for robust password matching
+        function normalizeDOB(dobStr) {
+            if (!dobStr) return '';
+            let cleaned = dobStr.toLowerCase().trim().replace(/[^a-z0-9]/g, ' ');
+            let parts = cleaned.split(/\s+/).filter(Boolean);
+
+            if (parts.length === 1) {
+                return parts[0];
+            }
+
+            let day = '', month = '', year = '';
+            for (let p of parts) {
+                if (monthMap[p]) {
+                    month = monthMap[p];
+                } else if (p.length === 4 && !isNaN(p)) {
+                    year = p;
+                } else if (!isNaN(p)) {
+                    day = p.padStart(2, '0');
+                }
+            }
+            return (day + month + year);
+        }
+
+        // Manager Auth State
+        let isManagerAuthenticated = false;
+        const MANAGER_PASSWORDS = ['buTlEr2026', 'admin422'];
+
+        // Process staff calculations: Final Score & Grade Index
+        const processedData = staffData.map(item => {
+            const weightedDetail = item.detailScore * 0.25;
+            const weightedOp = item.opScore * 0.75;
+            const finalScore = parseFloat((weightedDetail + weightedOp).toFixed(2));
+            
+            let grade = 'D';
+            let gradeColor = 'bg-rose-500';
+            let gradeText = 'Needs Improvement';
+
+            // Grade Logic (with Grand Apartments forced C+ override)
+            if (item.placement.toLowerCase().includes('grand')) {
+                grade = 'C+';
+                gradeColor = 'bg-amber-500';
+                gradeText = 'Grand Placement Override (C+)';
+            } else if (finalScore >= 8.5) {
+                grade = 'A';
+                gradeColor = 'bg-emerald-500';
+                gradeText = 'Excellent (A)';
+            } else if (finalScore >= 8.0) {
+                grade = 'B+';
+                gradeColor = 'bg-teal-600';
+                gradeText = 'Very Good (B+)';
+            } else if (finalScore >= 7.5) {
+                grade = 'B';
+                gradeColor = 'bg-blue-600';
+                gradeText = 'Good (B)';
+            } else if (finalScore >= 7.0) {
+                grade = 'C+';
+                gradeColor = 'bg-amber-500';
+                gradeText = 'Above Satisfactory (C+)';
+            } else if (finalScore >= 6.0) {
+                grade = 'C';
+                gradeColor = 'bg-orange-500';
+                gradeText = 'Satisfactory (C)';
+            }
+
+            return {
+                ...item,
+                weightedDetail: parseFloat(weightedDetail.toFixed(2)),
+                weightedOp: parseFloat(weightedOp.toFixed(2)),
+                finalScore,
+                grade,
+                gradeColor,
+                gradeText,
+                normDob: normalizeDOB(item.dob)
+            };
+        });
+
+        // Populate dropdown with staff names
+        function populateSelectOptions() {
+            const select = document.getElementById('staffSelect');
+            if (!select) return;
+
+            select.innerHTML = '<option value="" disabled selected>Select your name...</option>';
+            processedData.forEach(staff => {
+                const opt = document.createElement('option');
+                opt.value = staff.id;
+                opt.textContent = staff.name;
+                select.appendChild(opt);
+            });
+        }
+
+        // Initialize App on Load
+        function initApp() {
+            populateSelectOptions();
+            renderTable();
+            calculateStatistics();
+        }
+
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', initApp);
+        } else {
+            initApp();
+        }
+
+        // Demo Autofill Helper
+        function quickFillDemo() {
+            const select = document.getElementById('staffSelect');
+            select.value = "1"; // Wisnu Gunawan
+            document.getElementById('dobInput').value = "24 Jan 2007";
+        }
+
+        // Toggle Login Password Visibility
+        function togglePasswordVisibility() {
+            const dobInput = document.getElementById('dobInput');
+            const eyeIcon = document.getElementById('eyeIcon');
+            if (dobInput.type === 'password') {
+                dobInput.type = 'text';
+                eyeIcon.classList.remove('fa-eye');
+                eyeIcon.classList.add('fa-eye-slash');
+            } else {
+                dobInput.type = 'password';
+                eyeIcon.classList.remove('fa-eye-slash');
+                eyeIcon.classList.add('fa-eye');
+            }
+        }
+
+        // Handle Individual Staff Login
+        function handleLogin(e) {
+            e.preventDefault();
+            const staffId = document.getElementById('staffSelect').value;
+            const enteredDob = document.getElementById('dobInput').value;
+            const errorBox = document.getElementById('loginError');
+
+            if (!staffId) {
+                document.getElementById('errorMessage').textContent = "Please select your name from the dropdown list.";
+                errorBox.classList.remove('hidden');
+                return;
+            }
+
+            const staff = processedData.find(s => s.id === parseInt(staffId));
+            if (!staff) return;
+
+            const inputNorm = normalizeDOB(enteredDob);
+            const targetNorm = staff.normDob;
+
+            const isMatch = (inputNorm === targetNorm) || 
+                            (enteredDob.trim().toLowerCase() === staff.dob.toLowerCase()) ||
+                            (inputNorm.length >= 6 && targetNorm.includes(inputNorm));
+
+            if (isMatch) {
+                errorBox.classList.add('hidden');
+                displayStaffResult(staff);
+            } else {
+                document.getElementById('errorMessage').textContent = "Incorrect Date of Birth password for " + staff.name + ". Please try again.";
+                errorBox.classList.remove('hidden');
+            }
+        }
+
+        // Populate Result Section with Metrics
+        function displayStaffResult(staff) {
+            document.getElementById('loginSection').classList.add('hidden');
+            document.getElementById('overviewSection').classList.add('hidden');
+            const resSec = document.getElementById('resultSection');
+            resSec.classList.remove('hidden');
+
+            const initials = staff.name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase();
+            document.getElementById('avatarBadge').textContent = initials;
+
+            document.getElementById('resultName').textContent = staff.name;
+            document.getElementById('resultDob').textContent = staff.dob;
+
+            const gBadge = document.getElementById('gradeBadge');
+            gBadge.textContent = staff.grade;
+            gBadge.className = `w-12 h-12 rounded-xl text-white font-black text-xl sm:text-2xl flex items-center justify-center shadow-sm ${staff.gradeColor}`;
+            document.getElementById('resultGradeText').textContent = staff.gradeText;
+
+            document.getElementById('resultFinalScore').textContent = staff.finalScore.toFixed(2);
+            document.getElementById('scorePercentage').textContent = (staff.finalScore * 10).toFixed(1) + "% Overall Assessment";
+            document.getElementById('resultPlacement').textContent = staff.placement;
+
+            document.getElementById('detailRawScore').textContent = staff.detailScore;
+            document.getElementById('detailWeightedVal').textContent = staff.weightedDetail.toFixed(2);
+            const detailPct = ((staff.detailScore / 10) * 100).toFixed(0);
+            document.getElementById('detailPctVal').textContent = detailPct + "%";
+            document.getElementById('detailProgressBar').style.width = detailPct + "%";
+
+            document.getElementById('opRawScore').textContent = staff.opScore;
+            document.getElementById('opWeightedVal').textContent = staff.weightedOp.toFixed(2);
+            const opPct = ((staff.opScore / 10) * 100).toFixed(0);
+            document.getElementById('opPctVal').textContent = opPct + "%";
+            document.getElementById('opProgressBar').style.width = opPct + "%";
+        }
+
+        // Manager Authentication Modal Handlers
+        function openManagerAuthModal() {
+            if (isManagerAuthenticated) {
+                toggleOverviewMode();
+                return;
+            }
+            document.getElementById('managerPassInput').value = '';
+            document.getElementById('managerAuthError').classList.add('hidden');
+            document.getElementById('managerAuthModal').classList.remove('hidden');
+            document.getElementById('managerPassInput').focus();
+        }
+
+        function closeManagerAuthModal() {
+            document.getElementById('managerAuthModal').classList.add('hidden');
+        }
+
+        function toggleManagerPassVisibility() {
+            const passInput = document.getElementById('managerPassInput');
+            const eyeIcon = document.getElementById('managerEyeIcon');
+            if (passInput.type === 'password') {
+                passInput.type = 'text';
+                eyeIcon.classList.remove('fa-eye');
+                eyeIcon.classList.add('fa-eye-slash');
+            } else {
+                passInput.type = 'password';
+                eyeIcon.classList.remove('fa-eye-slash');
+                eyeIcon.classList.add('fa-eye');
+            }
+        }
+
+        function verifyManagerPassword(e) {
+            e.preventDefault();
+            const entered = document.getElementById('managerPassInput').value.trim();
+            if (MANAGER_PASSWORDS.includes(entered)) {
+                isManagerAuthenticated = true;
+                closeManagerAuthModal();
+                updateManagerUIState(true);
+                showOverviewSection();
+            } else {
+                document.getElementById('managerAuthError').classList.remove('hidden');
+            }
+        }
+
+        function updateManagerUIState(authenticated) {
+            const lockIcon = document.getElementById('managerLockIcon');
+            const btnText = document.getElementById('viewToggleText');
+            if (authenticated) {
+                lockIcon.className = 'fa-solid fa-lock-open text-emerald-600';
+                btnText.textContent = "Manager Overview";
+            } else {
+                lockIcon.className = 'fa-solid fa-lock text-airbnb-primary';
+                btnText.textContent = "Manager Overview";
+            }
+        }
+
+        function showOverviewSection() {
+            document.getElementById('loginSection').classList.add('hidden');
+            document.getElementById('resultSection').classList.add('hidden');
+            document.getElementById('overviewSection').classList.remove('hidden');
+        }
+
+        function lockManagerOverview() {
+            isManagerAuthenticated = false;
+            updateManagerUIState(false);
+            resetToHome();
+        }
+
+        function toggleOverviewMode() {
+            if (!isManagerAuthenticated) {
+                openManagerAuthModal();
+                return;
+            }
+
+            const overviewSec = document.getElementById('overviewSection');
+            const loginSec = document.getElementById('loginSection');
+
+            if (overviewSec.classList.contains('hidden')) {
+                showOverviewSection();
+            } else {
+                overviewSec.classList.add('hidden');
+                loginSec.classList.remove('hidden');
+            }
+        }
+
+        function resetToHome() {
+            document.getElementById('loginSection').classList.remove('hidden');
+            document.getElementById('resultSection').classList.add('hidden');
+            document.getElementById('overviewSection').classList.add('hidden');
+            document.getElementById('loginForm').reset();
+            document.getElementById('loginError').classList.add('hidden');
+        }
+
+        function logout() {
+            resetToHome();
+        }
+
+        // Render Manager Overview Data Table
+        function renderTable() {
+            const tbody = document.getElementById('overviewTableBody');
+            if (!tbody) return;
+
+            const searchTerm = document.getElementById('searchInput')?.value.toLowerCase() || '';
+
+            const filtered = processedData.filter(item => 
+                item.name.toLowerCase().includes(searchTerm) || 
+                item.placement.toLowerCase().includes(searchTerm)
+            );
+
+            if (filtered.length === 0) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="8" class="text-center py-6 text-gray-400">No staff records found matching "${searchTerm}"</td>
+                    </tr>
+                `;
+                return;
+            }
+
+            tbody.innerHTML = filtered.map((item, idx) => `
+                <tr class="hover:bg-gray-50 transition">
+                    <td class="py-3 px-4 text-gray-400 font-semibold">${idx + 1}</td>
+                    <td class="py-3 px-4 font-bold text-airbnb-gray">${item.name}</td>
+                    <td class="py-3 px-4 text-airbnb-lightGray">${item.dob}</td>
+                    <td class="py-3 px-4 text-center">
+                        <span class="font-bold">${item.detailScore}</span>
+                        <span class="text-[10px] text-gray-400 block">(${item.weightedDetail.toFixed(2)} pts)</span>
+                    </td>
+                    <td class="py-3 px-4 text-center">
+                        <span class="font-bold">${item.opScore}</span>
+                        <span class="text-[10px] text-gray-400 block">(${item.weightedOp.toFixed(2)} pts)</span>
+                    </td>
+                    <td class="py-3 px-4 text-center font-extrabold text-airbnb-primary text-sm">${item.finalScore.toFixed(2)}</td>
+                    <td class="py-3 px-4 text-center">
+                        <span class="inline-block px-2.5 py-1 text-center rounded-lg text-white font-extrabold text-xs ${item.gradeColor}">
+                            ${item.grade}
+                        </span>
+                    </td>
+                    <td class="py-3 px-4 font-medium text-airbnb-gray">
+                        <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-gray-100 text-gray-700">
+                            <i class="fa-solid fa-building text-[10px] text-airbnb-primary"></i> ${item.placement}
+                        </span>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        // Calculate Overview Statistics
+        function calculateStatistics() {
+            const total = processedData.length;
+            const gradeA = processedData.filter(d => d.grade === 'A').length;
+            const gradeB = processedData.filter(d => d.grade.startsWith('B')).length;
+            
+            const totalScoreSum = processedData.reduce((acc, curr) => acc + curr.finalScore, 0);
+            const avgScore = (totalScoreSum / total).toFixed(2);
+
+            if (document.getElementById('statTotal')) document.getElementById('statTotal').textContent = total;
+            if (document.getElementById('statGradeA')) document.getElementById('statGradeA').textContent = gradeA;
+            if (document.getElementById('statGradeB')) document.getElementById('statGradeB').textContent = gradeB;
+            if (document.getElementById('statAvgScore')) document.getElementById('statAvgScore').textContent = avgScore;
+        }
+    </script>
+</body>
+</html>
